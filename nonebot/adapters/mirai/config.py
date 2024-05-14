@@ -1,24 +1,27 @@
-from typing import Optional
-from ipaddress import IPv4Address
+from typing import Literal
 
-from pydantic import Extra, Field, BaseModel
+from pydantic import Field, BaseModel
+
+
+
+class ClientInfo(BaseModel):
+    host: str = "localhost"
+    """Mirai API HTTP 服务器地址"""
+    port: int = 8080
+    """Mirai API HTTP 服务器端口"""
+    account: int
+    """Mirai 登录账号"""
+    verify_key: str
+    """Mirai API HTTP 验证密钥"""
+    adapter: set[Literal["http", "ws"]] = {"http", "ws"}
+    """Mirai API HTTP 适配器类型
+
+    若只填入了 "http"，则只会通过 HTTP 进行通信
+    若只填入了 "ws"，则只会使用 WebSocket 进行通信
+    若两者都填入，则会使用 WebSocket 接收事件，使用 HTTP 调用 API
+    """
 
 
 class Config(BaseModel):
-    """
-    Mirai 配置类
-
-    :必填:
-
-      - ``auth_key`` / ``mirai_auth_key``: mirai-api-http 的 auth_key
-      - ``mirai_host``: mirai-api-http 的地址
-      - ``mirai_port``: mirai-api-http 的端口
-    """
-
-    auth_key: Optional[str] = Field(None, alias="mirai_auth_key")
-    host: Optional[IPv4Address] = Field(None, alias="mirai_host")
-    port: Optional[int] = Field(None, alias="mirai_port")
-
-    class Config:
-        extra = Extra.ignore
-        allow_population_by_field_name = True
+    mirai_client: list[ClientInfo] = Field(default_factory=list)
+    """Mirai 客户端配置"""
