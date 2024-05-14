@@ -104,10 +104,10 @@ class Profile(ModelBase):
     nickname: str
     """昵称"""
 
-    email: Optional[str]
+    email: Optional[str] = None
     """电子邮件地址"""
 
-    age: Optional[int]
+    age: Optional[int] = None
     """年龄"""
 
     level: int

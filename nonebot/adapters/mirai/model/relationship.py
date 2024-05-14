@@ -72,7 +72,7 @@ class Group(ModelBase):
             Config: 该群组的设置对象.
         """
         bot = current_bot.get()
-        return await bot.get_group_config(group=self)
+        return await bot.get_group_config(target=self)
 
     async def modify_config(self, config: "GroupConfig") -> None:
         """修改该群组的 Config
@@ -81,7 +81,7 @@ class Group(ModelBase):
             config (GroupConfig): 经过修改后的群设置对象.
         """
         bot = current_bot.get()
-        return await bot.modify_group_config(group=self, config=config)
+        return await bot.modify_group_config(target=self, config=config)
 
     async def get_avatar(self, cover: Optional[int] = None) -> bytes:
         """获取该群组的头像
@@ -95,6 +95,22 @@ class Group(ModelBase):
         cover = (cover or 0) + 1
         req = Request("GET", f"http://p.qlogo.cn/gh/{self.id}/{self.id}_{cover}/")
         return (await bot.adapter.request(req)).content  # type: ignore
+
+
+class ActiveStatus(ModelBase):
+    """描述群员的活跃状态"""
+
+    rank: int
+    """群活跃等级 1-6"""
+
+    point: int
+    """群活跃积分"""
+
+    honors: list[str]
+    """群荣誉列表"""
+
+    temperature: int
+    """群荣誉等级 LV 1-100"""
 
 
 class Member(ModelBase):
@@ -121,6 +137,9 @@ class Member(ModelBase):
     mute_time: Optional[int] = Field(None, alias="mutetimeRemaining")
     """禁言剩余时间"""
 
+    active_status: Optional[ActiveStatus] = Field(None, alias="active")
+    """活跃状态"""
+
     group: Group
     """所在群组"""
 
@@ -140,9 +159,10 @@ class Member(ModelBase):
             Profile: 该群成员的 Profile 对象
         """
         bot = current_bot.get()
-        return await bot.get_member_profile(member=self)
+        return await bot.get_member_profile(target=self)
 
-    async def get_info(self) -> "MemberInfo":
+    @property
+    def info(self) -> "MemberInfo":
         """获取该成员的可修改状态
 
         Returns:
@@ -161,7 +181,7 @@ class Member(ModelBase):
             None: 没有返回.
         """
         bot = current_bot.get()
-        return await bot.modify_member_info(member=self, info=info)
+        return await bot.modify_member_info(target=self, info=info)
 
     async def modify_admin(self, assign: bool) -> None:
         """
@@ -174,7 +194,7 @@ class Member(ModelBase):
             None: 没有返回.
         """
         bot = current_bot.get()
-        return await bot.modify_member_admin(member=self, assign=assign)
+        return await bot.modify_member_admin(target=self, assign=assign)
 
     async def get_avatar(self, size: Literal[640, 140] = 640) -> bytes:
         """获取该群成员的头像
@@ -185,12 +205,6 @@ class Member(ModelBase):
         Returns:
             bytes: 群成员头像的二进制内容.
         """
-        # from ..app import Ariadne
-        #
-        # async with Ariadne.service.client_session.get(
-        #     f"https://q2.qlogo.cn/headimg_dl?dst_uin={self.id}&spec={size}"
-        # ) as resp:
-        #     return await resp.read()
         bot = current_bot.get()
         req = Request("GET", f"http://q1.qlogo.cn/g?b=qq&nk={self.id}&s={size}")
         return (await bot.adapter.request(req)).content  # type: ignore
@@ -224,7 +238,7 @@ class Friend(ModelBase):
             Profile: 该好友的 Profile 对象
         """
         bot = current_bot.get()
-        return await bot.get_friend_profile(friend=self)
+        return await bot.get_friend_profile(target=self)
 
     async def get_avatar(self, size: Literal[640, 140] = 640) -> bytes:
         """获取该好友的头像

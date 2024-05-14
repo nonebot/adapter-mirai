@@ -6,6 +6,8 @@ from typing import Any, Optional
 from pydantic import BaseModel
 from nonebot.compat import PYDANTIC_V2, ConfigDict, model_dump
 
+from ..utils import snake_to_camel
+
 
 class ModelBase(BaseModel):
     """适配器数据模型的基类."""
@@ -23,10 +25,14 @@ class ModelBase(BaseModel):
         exclude_unset: bool = False,
         exclude_defaults: bool = False,
         exclude_none: bool = False,
+        to_camel: bool = False,
     ) -> dict[str, Any]:
         """转化为字典, 直接向 pydantic 转发."""
         _, *_ = by_alias, exclude_none
-        return model_dump(self, include, exclude, True, exclude_unset, exclude_defaults, True)
+        res = model_dump(self, include, exclude, True, exclude_unset, exclude_defaults, True)
+        if to_camel:
+            res = {snake_to_camel(k): v for k, v in res.items()}
+        return res
 
     if PYDANTIC_V2:
 

@@ -42,6 +42,9 @@ distribution = true
 includes = ["nonebot"]
 excludes = ["nonebot/__init__.py", "nonebot/adapters/__init__.py"]
 
+[tool.pdm.scripts]
+format = {composite = ["isort .", "black .", "ruff check ."]}
+
 [tool.pdm.dev-dependencies]
 dev = [
     "isort>=5.13.2",

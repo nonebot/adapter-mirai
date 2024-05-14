@@ -81,9 +81,9 @@ class MessageSegment(BaseMessageSegment["Message"]):
         return AtAll("at_all", {})
 
     @staticmethod
-    def face(face_id: int, name: Optional[str] = None) -> "Face":
+    def face(face_id: int, name: Optional[str] = None, superface: Optional[bool] = None) -> "Face":
         """表情消息段"""
-        return Face("face", {"id": face_id, "name": name})
+        return Face("face", {"id": face_id, "name": name, "superface": superface})
 
     @staticmethod
     def market_face(face_id: int, name: Optional[str] = None) -> "MarketFace":
@@ -296,6 +296,7 @@ class AtAll(MessageSegment, element_type=("AtAll", "at_all")):
 class FaceData(TypedDict):
     id: int
     name: Optional[str]
+    superface: Optional[bool]
 
 
 @dataclass
@@ -304,6 +305,7 @@ class Face(MessageSegment, element_type=("Face", "face")):
 
     __mapping__ = {
         "id": "faceId",
+        "superface": "superFace",
     }
 
     @override

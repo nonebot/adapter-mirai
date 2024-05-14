@@ -529,6 +529,28 @@ class BotLeaveEventDisband(GroupEvent, BotEvent):
 
 
 @register_event_class
+class FriendAddEvent(FriendEvent):
+    """有一位新用户添加了 Bot 账号为好友"""
+
+    __event_type__ = "FriendAddEvent"
+
+    stranger: bool
+    """是否为陌生人添加
+
+    若为 true 对应为 StrangerRelationChangeEvent.Friended 的 mirai 事件
+
+    否则为 FriendAddEvent
+    """
+
+
+@register_event_class
+class FriendDeleteEvent(FriendEvent):
+    """有一位用户删除了 Bot 账号好友关系"""
+
+    __event_type__ = "FriendDeleteEvent"
+
+
+@register_event_class
 class FriendInputStatusChangedEvent(FriendEvent):
     """好友输入状态改变"""
 
@@ -1133,7 +1155,7 @@ class OtherClientOnlineEvent(NoticeEvent):
     client: OtherClient
     """上线的客户端"""
 
-    kind: Optional[ClientKind]
+    kind: Optional[ClientKind] = None
     """客户端类型"""
 
 

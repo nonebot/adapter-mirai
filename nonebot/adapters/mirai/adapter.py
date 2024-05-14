@@ -180,16 +180,16 @@ class Adapter(BaseAdapter):
             if "type" not in body:
                 continue
 
-            event_type = data.pop("type")
+            event_type = body.pop("type")
             if event_type not in EVENT_CLASSES:
                 log(
                     "WARNING",
-                    f"received unsupported event <r><bg #f8bbd0>{event_type}</bg #f8bbd0></r>: {data}",
+                    f"received unsupported event <r><bg #f8bbd0>{event_type}</bg #f8bbd0></r>: {body}",
                 )
-                event = type_validate_python(Event, data)
+                event = type_validate_python(Event, body)
                 event.__event_type__ = event_type  # type: ignore
             else:
-                event = type_validate_python(EVENT_CLASSES[event_type], data)
+                event = type_validate_python(EVENT_CLASSES[event_type], body)
             bot = self.bots[str(info.account)]
             asyncio.create_task(bot.handle_event(event))
 
@@ -201,10 +201,12 @@ class Adapter(BaseAdapter):
             raise ApiNotAvailable(api)
         return await api_handler(bot, **data)
 
-    async def call(self, bot: Bot, action: str, method: CallMethod, params: Optional[dict] = None) -> dict:
+    async def call(
+        self, bot: Bot, action: str, method: CallMethod, params: Optional[dict] = None, session: bool = True
+    ) -> dict:
         if bot.info.only_ws:
-            return await self._call_ws(bot, action, method, params)
-        return await self._call_http(bot, action, method, params)
+            return await self._call_ws(bot, action, method, params, session=session)
+        return await self._call_http(bot, action, method, params, session=session)
 
     async def _call_ws(
         self,
@@ -244,11 +246,21 @@ class Adapter(BaseAdapter):
             del self.response_waiters[bot.info.account][echo]
 
     async def _call_http(
-        self, bot: Bot, action: str, method: CallMethod, params: Optional[dict] = None
+        self,
+        bot: Bot,
+        action: str,
+        method: CallMethod,
+        params: Optional[dict] = None,
+        *,
+        session: bool = True,
     ) -> dict:
+        if session and not self.session_keys.get(bot.info.account):
+            raise RuntimeError("No session key available.")
         action = action.replace("_", "/")
         data = exclude_none(params or {})
         data = {k: v.dict_() if isinstance(v, ModelBase) else v for k, v in data.items()}
+        if session:
+            data["sessionKey"] = self.session_keys[bot.info.account]
         if method == "get":
             req = Request(
                 "GET",
