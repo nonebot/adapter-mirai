@@ -6,7 +6,7 @@ from datetime import datetime
 from collections.abc import Iterable
 from typing_extensions import override
 from dataclasses import field, dataclass
-from typing import Union, Literal, ClassVar, Optional, TypedDict, overload
+from typing import Union, Literal, ClassVar, Optional, TypedDict, cast, overload
 
 from nonebot.adapters import Message as BaseMessage
 from nonebot.adapters import MessageSegment as BaseMessageSegment
@@ -143,12 +143,25 @@ class MessageSegment(BaseMessageSegment["Message"]):
         )
 
     @staticmethod
-    def node(uid: int, time: datetime, name: str, message: "Message") -> "Node":
-        """合并转发消息段中的节点"""
-        return Node("node", {"uid": uid, "time": int(time.timestamp()), "name": name, "message": message})
+    def custom_node(uid: int, time: datetime, name: str, message: "Message") -> "CustomNode":
+        """合并转发消息段中的自定义节点"""
+        return CustomNode(uid, int(time.timestamp()), name, message)
 
     @staticmethod
-    def forward(nodes: list["Node"], display_strategy: Optional["DisplayStrategy"] = None) -> "Forward":
+    def id_node(id: int) -> "IdNode":
+        """合并转发消息段中的当前对话上下文消息引用节点"""
+        return IdNode(id)
+
+    @staticmethod
+    def ref_node(id: int, target: Optional[int] = None) -> "RefNode":
+        """合并转发消息段中的其他对话上下文消息引用节点"""
+        return RefNode({"id": id, "target": target})
+
+    @staticmethod
+    def forward(
+        nodes: list[Union["CustomNode", "IdNode", "RefNode"]],
+        display_strategy: Optional["DisplayStrategy"] = None,
+    ) -> "Forward":
         """合并转发消息段"""
         return Forward("forward", {"nodes": nodes, "display_strategy": display_strategy})
 
@@ -501,44 +514,58 @@ class Music(MessageSegment, element_type=("MusicShare", "music")):
         return "[音乐分享]"
 
 
-class NodeData(TypedDict):
+@dataclass
+class CustomNode:
     uid: int
     time: int
     name: str
     message: "Message"
 
-
-@dataclass
-class Node(MessageSegment, element_type=("ForwardNode", "node")):
-    data: NodeData = field(default_factory=dict)  # type: ignore
-    __mapping__ = {
-        "uid": "senderId",
-        "time": "time",
-        "name": "senderName",
-        "message": "messageChain",
-    }
-
-    def __post_init__(self):
-        if not isinstance(self.data["message"], Message):
-            self.data["message"] = Message.from_elements(self.data["message"])  # type: ignore
-
     @classmethod
     def parse(cls, raw: dict):
-        return Node(
-            "node",
-            {
-                "uid": raw["senderId"],
-                "time": raw["time"],
-                "name": raw["senderName"],
-                "message": Message.from_elements(raw["messageChain"]),
-            },
+        return cls(
+            uid=raw["senderId"],
+            time=raw["time"],
+            name=raw["senderName"],
+            message=Message.from_elements(raw["messageChain"]),
         )
 
     def dump(self) -> dict:
         return {
-            **{self.__mapping__.get(k, k): v for k, v in self.data.items()},
-            "messageChain": self.data["message"].to_elements(),
+            "senderId": self.uid,
+            "time": self.time,
+            "senderName": self.name,
+            "messageChain": self.message.to_elements(),
         }
+
+
+@dataclass
+class IdNode:
+    id: int
+
+    @classmethod
+    def parse(cls, raw: dict):
+        return cls(id=raw["messageId"])
+
+    def dump(self) -> dict:
+        return {"messageId": self.id}
+
+
+class RefData(TypedDict):
+    id: int
+    target: Optional[int]
+
+
+@dataclass
+class RefNode:
+    ref: RefData
+
+    @classmethod
+    def parse(cls, raw: dict):
+        return cls(ref={"id": raw["messageId"], "target": raw.get("target")})
+
+    def dump(self) -> dict:
+        return {"messageRef": {"messageId": self.ref["id"], "target": self.ref.get("target")}}
 
 
 class DisplayStrategy(TypedDict):
@@ -555,7 +582,7 @@ class DisplayStrategy(TypedDict):
 
 
 class ForwardData(TypedDict):
-    nodes: list[Node]
+    nodes: list[Union[CustomNode, IdNode, RefNode]]
     display_strategy: Optional[DisplayStrategy]
 
 
@@ -566,8 +593,14 @@ class Forward(MessageSegment, element_type=("Forward", "forward")):
     __mapping__ = {"nodes": "nodeList", "display_strategy": "display"}
 
     def __post_init__(self):
-        if "nodes" in self.data and not isinstance(self.data["nodes"][0], Node):
-            self.data["nodes"] = [Node.parse(n) for n in self.data["nodes"]]  # type: ignore
+        if "nodes" in self.data and not isinstance(self.data["nodes"][0], (CustomNode, IdNode, RefNode)):
+            for index, raw in enumerate(cast(list[dict], self.data["nodes"])):
+                if "messageId" in raw:
+                    self.data["nodes"][index] = IdNode.parse(raw)
+                elif "messageRef" in raw:
+                    self.data["nodes"][index] = RefNode.parse(raw)
+                else:
+                    self.data["nodes"][index] = CustomNode.parse(raw)
 
     def dump(self) -> dict:
         return {

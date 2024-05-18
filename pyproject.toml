@@ -5,7 +5,7 @@ build-backend = "pdm.backend"
 
 [project]
 name = "nonebot-adapter-mirai"
-version = "2.3.0"
+version = "2.3.1"
 description = "Mirai Api HTTP adapter for nonebot2"
 authors = [
     {name = "rf_tar_railt", email = "rf_tar_railt@qq.com"},
