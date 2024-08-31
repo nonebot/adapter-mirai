@@ -9,6 +9,7 @@ from nonebot.internal.matcher import current_bot
 from .base import ModelBase
 
 if TYPE_CHECKING:
+    from ..bot import Bot
     from .common import Profile
 
 _MEMBER_PERM_LV_MAP: dict[str, int] = {
@@ -71,8 +72,8 @@ class Group(ModelBase):
         Returns:
             Config: 该群组的设置对象.
         """
-        bot = current_bot.get()
-        return await bot.get_group_config(target=self)
+        bot: "Bot" = current_bot.get()  # type: ignore
+        return await bot.get_group_config(group=self)
 
     async def modify_config(self, config: "GroupConfig") -> None:
         """修改该群组的 Config
@@ -80,8 +81,8 @@ class Group(ModelBase):
         Args:
             config (GroupConfig): 经过修改后的群设置对象.
         """
-        bot = current_bot.get()
-        return await bot.modify_group_config(target=self, config=config)
+        bot: "Bot" = current_bot.get()  # type: ignore
+        return await bot.modify_group_config(group=self, config=config)
 
     async def get_avatar(self, cover: Optional[int] = None) -> bytes:
         """获取该群组的头像
@@ -91,7 +92,7 @@ class Group(ModelBase):
         Returns:
             bytes: 群头像的二进制内容.
         """
-        bot = current_bot.get()
+        bot: "Bot" = current_bot.get()  # type: ignore
         cover = (cover or 0) + 1
         req = Request("GET", f"http://p.qlogo.cn/gh/{self.id}/{self.id}_{cover}/")
         return (await bot.adapter.request(req)).content  # type: ignore
@@ -158,8 +159,8 @@ class Member(ModelBase):
         Returns:
             Profile: 该群成员的 Profile 对象
         """
-        bot = current_bot.get()
-        return await bot.get_member_profile(target=self)
+        bot: "Bot" = current_bot.get()  # type: ignore
+        return await bot.get_member_profile(member=self)
 
     @property
     def info(self) -> "MemberInfo":
@@ -180,8 +181,8 @@ class Member(ModelBase):
         Returns:
             None: 没有返回.
         """
-        bot = current_bot.get()
-        return await bot.modify_member_info(target=self, info=info)
+        bot: "Bot" = current_bot.get()  # type: ignore
+        return await bot.modify_member_info(member=self, info=info)
 
     async def modify_admin(self, assign: bool) -> None:
         """
@@ -193,8 +194,8 @@ class Member(ModelBase):
         Returns:
             None: 没有返回.
         """
-        bot = current_bot.get()
-        return await bot.modify_member_admin(target=self, assign=assign)
+        bot: "Bot" = current_bot.get()  # type: ignore
+        return await bot.modify_member_admin(member=self, assign=assign)
 
     async def get_avatar(self, size: Literal[640, 140] = 640) -> bytes:
         """获取该群成员的头像
@@ -205,7 +206,7 @@ class Member(ModelBase):
         Returns:
             bytes: 群成员头像的二进制内容.
         """
-        bot = current_bot.get()
+        bot: "Bot" = current_bot.get()  # type: ignore
         req = Request("GET", f"http://q1.qlogo.cn/g?b=qq&nk={self.id}&s={size}")
         return (await bot.adapter.request(req)).content  # type: ignore
 
@@ -237,8 +238,8 @@ class Friend(ModelBase):
         Returns:
             Profile: 该好友的 Profile 对象
         """
-        bot = current_bot.get()
-        return await bot.get_friend_profile(target=self)
+        bot: "Bot" = current_bot.get()  # type: ignore
+        return await bot.get_friend_profile(friend=self)
 
     async def get_avatar(self, size: Literal[640, 140] = 640) -> bytes:
         """获取该好友的头像
@@ -249,7 +250,7 @@ class Friend(ModelBase):
         Returns:
             bytes: 好友头像的二进制内容.
         """
-        bot = current_bot.get()
+        bot: "Bot" = current_bot.get()  # type: ignore
         req = Request("GET", f"http://q1.qlogo.cn/g?b=qq&nk={self.id}&s={size}")
         return (await bot.adapter.request(req)).content  # type: ignore
 
@@ -284,7 +285,7 @@ class Stranger(ModelBase):
         Returns:
             bytes: 陌生人头像的二进制内容.
         """
-        bot = current_bot.get()
+        bot: "Bot" = current_bot.get()  # type: ignore
         req = Request("GET", f"http://q1.qlogo.cn/g?b=qq&nk={self.id}&s={size}")
         return (await bot.adapter.request(req)).content  # type: ignore
 
