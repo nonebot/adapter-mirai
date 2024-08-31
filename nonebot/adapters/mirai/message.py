@@ -17,7 +17,7 @@ from .model import Member
 class MessageSegment(BaseMessageSegment["Message"]):
     __element_type__: ClassVar[tuple[str, str]]
     __mapping__: ClassVar[dict[str, str]] = {}
-    __rmapping__: ClassVar[dict[str, str]]
+    __rmapping__: ClassVar[dict[str, str]] = {}
 
     def __init_subclass__(cls, **kwargs):
         if "element_type" in kwargs:
