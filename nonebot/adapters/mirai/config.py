@@ -22,7 +22,7 @@ class ClientInfo(BaseModel):
 
     def ws_url(self):
         return str(
-            (URL(f"http://{self.host}:{self.port}") / "all").with_query(
+            (URL(f"ws://{self.host}:{self.port}") / "all").with_query(
                 {"qq": self.account, "verifyKey": self.verify_key}
             )
         )
